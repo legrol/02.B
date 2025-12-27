@@ -73,7 +73,9 @@ extern int yydebug;
     ANDAND = 274,                  /* ANDAND  */
     OROR = 275,                    /* OROR  */
     SHL = 276,                     /* SHL  */
-    SHR = 277                      /* SHR  */
+    SHR = 277,                     /* SHR  */
+    PLUS = 278,                    /* PLUS  */
+    STAR = 279                     /* STAR  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -87,7 +89,7 @@ union YYSTYPE
     int   num;
     char *str;
 
-#line 91 "parser.tab.h"
+#line 93 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

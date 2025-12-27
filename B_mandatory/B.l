@@ -24,26 +24,26 @@ Its responsibility is to read the raw input character stream and convert it
 into a sequence of tokens that will be consumed by the Bison parser (B.y).
 
 Main responsibilities:
-- Ignore irrelevant input such as whitespace and comments.
-- Recognize identifiers, keywords, literals, operators, and symbols.
-- Return the correct token type to the parser.
-- Attach semantic values (yylval) when needed (e.g., numbers and strings).
+	- Ignore irrelevant input such as whitespace and comments.
+	- Recognize identifiers, keywords, literals, operators, and symbols.
+	- Return the correct token type to the parser.
+	- Attach semantic values (yylval) when needed (e.g., numbers and strings).
 
 How it works:
-- Flex scans the input from left to right using regular expressions.
-- Each rule matches a pattern and executes an associated C action.
-- When a token is recognized, the lexer returns a token defined in parser.tab.h.
-- Keywords are detected by comparing identifier text against reserved words.
-- Operators and symbols are returned directly as token constants or characters.
+	- Flex scans the input from left to right using regular expressions.
+	- Each rule matches a pattern and executes an associated C action.
+	- When a token is recognized, the lexer returns a token defined in parser.tab.h.
+	- Keywords are detected by comparing identifier text against reserved words.
+	- Operators and symbols are returned directly as token constants or characters.
 
 Important implementation details:
-- %option noinput nounput disables unused Flex helper functions to avoid
-  compiler warnings under -Wall -Wextra -Werror.
-- parser.tab.h is included to make token definitions visible to the lexer.
-- B.h provides shared declarations used across the project.
-- String literals allocate memory dynamically and store their value in yylval.
-- Comments (single-line and multi-line) are fully ignored by the lexer.
-- Any single unmatched character is returned as-is to the parser.
+	- %option noinput nounput disables unused Flex helper functions to avoid
+		compiler warnings under -Wall -Wextra -Werror.
+	- parser.tab.h is included to make token definitions visible to the lexer.
+	- B.h provides shared declarations used across the project.
+	- String literals allocate memory dynamically and store their value in yylval.
+	- Comments (single-line and multi-line) are fully ignored by the lexer.
+	- Any single unmatched character is returned as-is to the parser.
 
 This lexer does not perform syntax validation.
 Its only job is tokenization; grammar rules and structure are handled by Bison.
@@ -72,6 +72,8 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 \/\*([^*]|\*+[^*/])*\*\/ ;   /* multi-line comment */
 
 [A-Za-z_][A-Za-z0-9_]* {
+	printf("LEX: IDENTIFIER or KEYWORD -> \"%s\"\n", yytext);
+
     if (strcmp(yytext, "if") == 0)       return IF;
     if (strcmp(yytext, "else") == 0)     return ELSE;
     if (strcmp(yytext, "while") == 0)    return WHILE;
@@ -84,25 +86,38 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
     return IDENT;
 }
 
-[0-9]+                   { return NUMBER; }
+[0-9]+ { 
+	printf("LEX: NUMBER -> \"%s\"\n", yytext);
+	yylval.num = atoi(yytext);
+	return NUMBER;
+}
 
 \"([^\"\\]|\\.)*\" { 
+	printf("LEX: STRING -> \"%s\"\n", yytext);
 	yylval.str = strdup(yytext); 
 	return STRING; 
 }
 
-"=="     { return EQ; }
-"!="     { return NE; }
-"<="     { return LE; }
-">="     { return GE; }
-"&&"     { return ANDAND; }
-"||"     { return OROR; }
-"<<"     { return SHL; }
-">>"     { return SHR; }
+"=="     { printf("LEX: EQ\n"); return EQ; }
+"!="     { printf("LEX: NE\n"); return NE; }
+"<="     { printf("LEX: LE\n"); return LE; }
+">="     { printf("LEX: GE\n"); return GE; }
+"&&"     { printf("LEX: ANDAND\n"); return ANDAND; }
+"||"     { printf("LEX: OROR\n"); return OROR; }
+"<<"     { printf("LEX: SHL\n"); return SHL; }
+">>"     { printf("LEX: SHR\n"); return SHR; }
+"+" 	 { printf("LEX: PLUS\n"); return PLUS; }
+"*" 	 { printf("LEX: STAR\n"); return STAR; }
 
-.        { return yytext[0]; }
+. { 
+	printf("LEX: CHAR -> '%c'\n", yytext[0]);
+	return yytext[0];
+}
 
-<<EOF>>  { return 0; }
+<<EOF>> {
+	printf("LEX: EOF\n");
+	return 0;
+}
 %%
 
 int yywrap(void)

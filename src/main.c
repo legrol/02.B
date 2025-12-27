@@ -6,13 +6,11 @@
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 22:51:50 by rdel-olm          #+#    #+#             */
-/*   Updated: 2025/12/27 01:24:01 by rdel-olm         ###   ########.fr       */
+/*   Updated: 2025/12/27 18:56:49 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "B.h"
-
-/* Declarations for `yyparse` and `yyin` are in `includes/B.h` */
+#include "../includes/B.h"
 
 int main(int argc, char **argv) 
 {
