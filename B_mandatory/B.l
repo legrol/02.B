@@ -71,32 +71,29 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 
 \/\*([^*]|\*+[^*/])*\*\/ ;   /* multi-line comment */
 
-"if"        { printf("LEX: IF\n"); return IF; }
-"else"      { printf("LEX: ELSE\n"); return ELSE; }
+"if"        { return IF; }
+"else"      { return ELSE; }
 
 [A-Za-z_][A-Za-z0-9_]* {
-	printf("LEX: IDENTIFIER or KEYWORD -> \"%s\"\n", yytext);
 	yylval.str = strdup(yytext);
     return IDENT;
 }
 
 [0-9]+ { 
-	printf("LEX: NUMBER -> \"%s\"\n", yytext);
 	yylval.str = strdup(yytext);
 	return NUMBER;
 }
 
-"+" 	 { printf("LEX: PLUS\n"); return PLUS; }
-"*" 	 { printf("LEX: STAR\n"); return STAR; }
-"="    	 { printf("LEX: ASSIGN\n"); return '='; }
-";"      { printf("LEX: SEMI\n"); return ';'; }
-"("      { printf("LEX: LPAREN\n"); return '('; }
-")"      { printf("LEX: RPAREN\n"); return ')'; }
+"+" 	 { return PLUS; }
+"*" 	 { return STAR; }
+"="    	 { return '='; }
+";"      { return ';'; }
+"("      { return '('; }
+")"      { return ')'; }
 
 . { return yytext[0]; }
 
-<<EOF>> {
-	printf("LEX: EOF\n");
+<<EOF>> {	
 	return 0;
 }
 %%

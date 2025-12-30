@@ -96,7 +96,9 @@ assignment
 
 expression
     : term
-    | expression PLUS term {
+    | expression PLUS {
+        emit("\tpush eax\n");
+      } term {
         emit("\tpop ebx\n");
         emit("\tadd eax, ebx\n");
       }
@@ -104,7 +106,9 @@ expression
 
 term
     : factor
-    | term STAR factor {
+    | term STAR {
+        emit("\tpush eax\n");
+      } factor {
         emit("\tpop ebx\n");
         emit("\timul eax, ebx\n");
       }
