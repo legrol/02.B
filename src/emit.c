@@ -1,20 +1,30 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   emit.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/12/26 22:51:50 by rdel-olm          #+#    #+#             */
-/*   Updated: 2025/12/30 00:55:44 by rdel-olm         ###   ########.fr       */
+/*   Created: 2025/12/30 00:50:02 by rdel-olm          #+#    #+#             */
+/*   Updated: 2025/12/30 00:52:52 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/B.h"
+#include "../includes/emit.h"
 
-int main(void) 
+static int label_id = 0;
+
+void emit(const char *fmt, ...)
 {
-	if (yyparse() != 0)
-        return 1;
-    return 0;
+    va_list ap;
+    va_start(ap, fmt);
+    vprintf(fmt, ap);
+    va_end(ap);
+}
+
+char *new_label(void)
+{
+    char *buf = malloc(32);
+    sprintf(buf, ".L%d", label_id++);
+    return buf;
 }

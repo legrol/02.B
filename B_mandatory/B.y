@@ -56,86 +56,78 @@ Its role is strictly syntactic validation and structural analysis.
 
 %{
 #include "../includes/B.h"
+#include "../includes/emit.h"
 %}
 
 %union {
-    int   num;
     char *str;
 }
 
-%token <num> NUMBER
-%token <str> STRING
-%token IDENT
-
-%token IF ELSE WHILE RETURN
-%token SWITCH CASE DEFAULT
-%token BREAK CONTINUE
-
-%token EQ NE LE GE
-%token ANDAND OROR
-%token SHL SHR
-
+%token <str> IDENT NUMBER
+%token IF ELSE
 %token PLUS STAR
+
 %left PLUS
 %left STAR
-
-%type <num> expression term factor
+%nonassoc IFX
+%nonassoc ELSE
 
 %%
 program
-    : statement {
-        printf("PARSER: program reduced\n");
-      }
+    : statements
+    ;
+
+statements
+    : /* empty */
+    | statements statement
     ;
 
 statement
-    : assignment ';' {
-        printf("PARSER: statement (assignment) reduced\n");
-      }
+    : assignment ';'
+    | if_statement
     ;
 
 assignment
     : IDENT '=' expression {
-        printf("RESULT: %d\n", $3);
+        declare_symbol($1);
+        emit("\tmov [%s], eax\n", $1);
       }
     ;
 
 expression
-    : expression PLUS term {
-		$$ = $1 + $3;
-        printf("PARSER: expression -> expression + term\n");
-      }
-    | term {
-		$$ = $1;
-        printf("PARSER: expression -> term\n");
+    : term
+    | expression PLUS term {
+        emit("\tpop ebx\n");
+        emit("\tadd eax, ebx\n");
       }
     ;
 
 term
-    : term STAR factor {
-		$$ = $1 * $3;
-        printf("PARSER: term -> term * factor\n");
-      }
-    | factor {
-		$$ = $1;
-        printf("PARSER: term -> factor\n");
+    : factor
+    | term STAR factor {
+        emit("\tpop ebx\n");
+        emit("\timul eax, ebx\n");
       }
     ;
 
 factor
     : NUMBER {
-		$$ = $1;
-        printf("PARSER: factor -> NUMBER (%d)\n", $1);
+        emit("\tmov eax, %s\n", $1);
       }
-    | '(' expression ')' {
-		$$ = $2;
-        printf("PARSER: factor -> (expression)\n");
+    | IDENT {
+        emit("\tmov eax, [%s]\n", $1);
       }
+    | '(' expression ')'
     ;
 
+if_statement
+    : IF '(' expression ')' statement %prec IFX
+    | IF '(' expression ')' statement ELSE statement
+    ;
 %%
 
-int yyerror(const char *s) {
-    fprintf(stderr, "parse error: %s\n", s);
+int yyerror(const char *s)
+{
+    (void)s;
     return 0;
 }

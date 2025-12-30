@@ -6,7 +6,7 @@
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 22:52:08 by rdel-olm          #+#    #+#             */
-/*   Updated: 2025/12/27 01:12:04 by rdel-olm         ###   ########.fr       */
+/*   Updated: 2025/12/30 00:54:17 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,25 +19,26 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h>
-# include <ctype.h>
+# include <stdarg.h>
 
 // ============================================================================
 // Access to my libraries
 // ============================================================================
 # include "colors.h"
 
-
 // ============================================================================
 // Mandatory functions
-// Flex/Bison runtime declarations 			
+// Flex/Bison runtime declarations 		
 // ============================================================================
-extern FILE *yyin;
-
 int yyparse(void);
 int yylex(void);
 int yyerror(const char *s);
-int yywrap(void);
 
+// ============================================================================
+// Symbol table	
+// ============================================================================
+void declare_symbol(const char *name);
+const char *symbol_label(const char *name);
 
 // ============================================================================
 // Bonus functions

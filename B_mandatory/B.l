@@ -71,48 +71,29 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 
 \/\*([^*]|\*+[^*/])*\*\/ ;   /* multi-line comment */
 
+"if"        { printf("LEX: IF\n"); return IF; }
+"else"      { printf("LEX: ELSE\n"); return ELSE; }
+
 [A-Za-z_][A-Za-z0-9_]* {
 	printf("LEX: IDENTIFIER or KEYWORD -> \"%s\"\n", yytext);
-
-    if (strcmp(yytext, "if") == 0)       return IF;
-    if (strcmp(yytext, "else") == 0)     return ELSE;
-    if (strcmp(yytext, "while") == 0)    return WHILE;
-    if (strcmp(yytext, "return") == 0)   return RETURN;
-    if (strcmp(yytext, "switch") == 0)   return SWITCH;
-    if (strcmp(yytext, "case") == 0)     return CASE;
-    if (strcmp(yytext, "default") == 0)  return DEFAULT;
-    if (strcmp(yytext, "break") == 0)    return BREAK;
-    if (strcmp(yytext, "continue") == 0) return CONTINUE;
+	yylval.str = strdup(yytext);
     return IDENT;
 }
 
 [0-9]+ { 
 	printf("LEX: NUMBER -> \"%s\"\n", yytext);
-	yylval.num = atoi(yytext);
+	yylval.str = strdup(yytext);
 	return NUMBER;
 }
 
-\"([^\"\\]|\\.)*\" { 
-	printf("LEX: STRING -> \"%s\"\n", yytext);
-	yylval.str = strdup(yytext); 
-	return STRING; 
-}
-
-"=="     { printf("LEX: EQ\n"); return EQ; }
-"!="     { printf("LEX: NE\n"); return NE; }
-"<="     { printf("LEX: LE\n"); return LE; }
-">="     { printf("LEX: GE\n"); return GE; }
-"&&"     { printf("LEX: ANDAND\n"); return ANDAND; }
-"||"     { printf("LEX: OROR\n"); return OROR; }
-"<<"     { printf("LEX: SHL\n"); return SHL; }
-">>"     { printf("LEX: SHR\n"); return SHR; }
 "+" 	 { printf("LEX: PLUS\n"); return PLUS; }
 "*" 	 { printf("LEX: STAR\n"); return STAR; }
+"="    	 { printf("LEX: ASSIGN\n"); return '='; }
+";"      { printf("LEX: SEMI\n"); return ';'; }
+"("      { printf("LEX: LPAREN\n"); return '('; }
+")"      { printf("LEX: RPAREN\n"); return ')'; }
 
-. { 
-	printf("LEX: CHAR -> '%c'\n", yytext[0]);
-	return yytext[0];
-}
+. { return yytext[0]; }
 
 <<EOF>> {
 	printf("LEX: EOF\n");
