@@ -6,7 +6,7 @@
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/30 00:51:19 by rdel-olm          #+#    #+#             */
-/*   Updated: 2025/12/30 00:55:02 by rdel-olm         ###   ########.fr       */
+/*   Updated: 2026/01/01 22:13:31 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,5 +23,11 @@
 // ============================================================================
 void emit(const char *fmt, ...);
 char *new_label(void);
+void flush_emit(void);
+void push_label(char *lbl);
+char *pop_label(void);
+char *peek_label(void);
+void emit_begin_capture(void);
+char *emit_end_capture(void);
 
 #endif

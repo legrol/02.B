@@ -28,6 +28,21 @@ MID_GRAY            = \033[38;5;245m
 DARK_GREEN          = \033[38;2;75;179;82m
 DARK_YELLOW         = \033[38;5;143m
 
+# ══ Emojis ══════════════════════════════════════════════════════════════════ #
+#    ------                                                                    #
+# ════════════════════════════════════════════════════════════════════════════ #
+
+ROCKET = 🚀
+GEAR = ⚙️
+CLEAN = 🧹
+CHECK = ✅
+CROSS = ❌
+INFO = 💡
+GAME = 🎮
+CHART = 📊
+SHIELD = 🛡️
+FIRE = 🔥
+
 # ══ Compilation══════════════════════════════════════════════════════════════ #
 #    -----------                                                               #
 # ════════════════════════════════════════════════════════════════════════════ #
@@ -38,6 +53,8 @@ RM                  = rm -f
 MKD                 = mkdir -p
 FLEX                = flex
 YACC                = bison
+NASM                = nasm
+LD                  = ld
 
 # ══ Directories ═════════════════════════════════════════════════════════════ #
 #    -----------                                                               #
@@ -48,6 +65,7 @@ INC_DIR             = includes
 UTL_DIR             = utils
 B_MAN_DIR           = B_mandatory
 B_BON_DIR           = B_bonus
+OBJ_DIR             = obj
 
 # ══ Flags ═══════════════════════════════════════════════════════════════════ #
 #    -----                                                                     #
@@ -55,6 +73,8 @@ B_BON_DIR           = B_bonus
 
 CFLAGS              = -Wall -Werror -Wextra -O2
 IFLAGS              = -I${INC_DIR}
+NASM_FLAGS          = -felf32
+LD_FLAGS            = -m elf_i386
 
 # ══ Sources ═════════════════════════════════════════════════════════════════ #
 #    -------                                                                   #
@@ -79,21 +99,44 @@ LEX_OUT             = lex.yy.c
 B_MAN_SRC 		= $(B_MAN_DIR)/B.l \
 					$(B_MAN_DIR)/B.y
 
+# ═══ Default filenames and backend selector ═════════════════════════════════ #
+#     -------------------------------                                  	       #
+# ════════════════════════════════════════════════════════════════════════════ #
+
+# Default input B source (you can override with `make assemble INPUT=yourfile.b`)
+# Tests sources live in `tests/` now, so default to a test file there.
+INPUT ?= tests/test_add.b
+
+# Output assembly produced by the compiler (temporary)
+OUT_ASM ?= out.asm
+
+# Object file produced after assembling (temporary)
+OUT_OBJ ?= $(OBJ_DIR)/out.o
+
+# Final executable produced by the linker
+FINAL ?= final
+
+# Backend selector for assembling/linking pipeline
+#  - 'nasm' : use NASM (Intel syntax) + ld  (default, recommended by the subject)
+#  - 'gas'  : use GNU as (AT&T) + ld
+# Override example: `make assemble BACKEND=gas`
+BACKEND ?= nasm
+
 # ═══ Rules ══════════════════════════════════════════════════════════════════ #
 #     -----                                                                    #
 # ════════════════════════════════════════════════════════════════════════════ #
 
 all: ${NAME}
 
-
 ${NAME}: $(YACC_OUT) $(LEX_OUT) $(SRCS)
+	@echo ""
 	@echo "$(YELLOW)Building ${NAME}...$(DEF_COLOR)"
 	@$(CC) $(CFLAGS) $(IFLAGS) -o ${NAME} $(YACC_OUT) $(LEX_OUT) $(SRCS) -lfl
 	@echo "$(GREEN)${NAME} built successfully.$(DEF_COLOR)"
 	@echo ""
 	
 $(YACC_OUT) $(YACC_HDR): $(B_MAN_DIR)/B.y
-	@$(YACC) -d -o $(YACC_OUT) $(B_MAN_DIR)/B.y
+	@$(YACC) -d -o $(YACC_OUT) $(B_MAN_DIR)/B.y 2>/dev/null
 
 $(LEX_OUT): $(B_MAN_DIR)/B.l $(YACC_HDR)
 	@$(FLEX) -o $(LEX_OUT) $(B_MAN_DIR)/B.l
@@ -102,8 +145,11 @@ clean:
 	@echo ""
 	@echo "$(YELLOW)Removing object files ...$(DEF_COLOR)"
 	@$(RM) ${NAME} parser.tab.c parser.tab.h lex.yy.c lex.yy.o
-	@$(RM) -r ${OBJ_DIR}
+	@$(RM) $(OUT_ASM) out asm out.s
+	@$(RM) $(OUT_OBJ) final final2 out
+	@$(RM) -r $(OBJ_DIR)
 	@$(RM) *.out others/*.out
+	@$(RM) tests_error/*.out || true
 	@echo "$(RED)Object files removed $(DEF_COLOR)"
 	@echo ""
 
@@ -111,9 +157,120 @@ fclean: clean
 	@echo "$(YELLOW)Removing binaries ...$(DEF_COLOR)"
 	@$(RM) ${NAME}
 	@$(RM) test *.out others/*.out
+	@$(RM) final final2 out out.asm out.s $(OUT_OBJ)
+	@$(RM) tests_error/*.out || true
 	@echo "$(RED)Binaries removed $(DEF_COLOR)"
 	@echo ""
 
 re: fclean all
 
-.PHONY: all clean fclean re
+# -------------------------------------------------------- #
+# Generate assembly by running the compiler on `$(INPUT)`
+# -------------------------------------------------------- #
+test: $(NAME)
+	@echo ""
+	@echo "$(YELLOW)Running tests...$(DEF_COLOR)"
+	@echo ""
+	@fail=0; \
+	for f in tests/*.b; do \
+		tname=$$(basename $$f .b); \
+		exp_file=tests/$$tname.expect; \
+		if [ ! -f $$exp_file ]; then printf "%-25s MISSING .expect\n" "$$tname"; fail=1; continue; fi; \
+		./$(NAME) < $$f > $(OUT_ASM); \
+		$(MKD) $(OBJ_DIR); \
+		$(NASM) $(NASM_FLAGS) $(OUT_ASM) -o $(OUT_OBJ); \
+		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
+		out=$$(./$(FINAL)); \
+		exp=$$(cat $$exp_file); \
+		if [ "$$out" -eq "$$exp" ]; then \
+			printf "Test %-20s : result=%-5s expected=%-5s OK $(CHECK)\\n" "$$tname" "$$out" $$exp; \
+		else \
+			printf "Test %-20s : result=%-5s expected=%-5s FAIL $(CROSS)\\n" "$$tname" "$$out" $$exp; fail=1; \
+		fi; \
+	done; \
+	if [ $$fail -ne 0 ]; then exit 1; fi
+	@echo ""
+	@echo "All tests passed."
+	@echo ""
+	
+test-errors: $(NAME)
+	@echo ""
+	@echo "$(YELLOW)Running error tests...$(DEF_COLOR)"
+	@./tests_error/run_error_tests.sh
+	@echo ""
+
+# ----------------------------------------------------------- #
+# Link with the subject-provided entry object `brt0.o`
+# ----------------------------------------------------------- #
+link: obj
+	@echo ""
+	@echo "$(YELLOW)Linking brt0.o and $(OUT_OBJ)...$(DEF_COLOR)"
+	@$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL)
+	@echo "$(GREEN)Wrote $(FINAL)$(DEF_COLOR)"
+
+# --------------------------------------------------------------------------------- #
+# Single simple `run` target: build (assemble) then execute the produced `$(FINAL)`.
+# --------------------------------------------------------------------------------- #
+run: assemble
+	@echo ""
+	@echo "$(YELLOW)Running $(FINAL)...$(DEF_COLOR)"
+	@./$(FINAL)
+
+# --------------------------------------------------------------- #
+# Single assemble target that picks backend using BACKEND variable
+# --------------------------------------------------------------- #
+assemble: $(NAME)
+	@echo ""
+	@echo "$(YELLOW)Assembling (backend=$(BACKEND))...$(DEF_COLOR)"
+	@if [ ! -f "$(INPUT)" ]; then \
+		echo "$(RED)Error: input file '$(INPUT)' not found$(DEF_COLOR)"; exit 1; \
+	fi; \
+	if [ "$(BACKEND)" = "gas" ]; then \
+		./$(NAME) < $(INPUT) > $(OUT_ASM); \
+		$(MKD) $(OBJ_DIR); \
+		as --32 $(OUT_ASM) -o $(OUT_OBJ); \
+		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
+		echo "$(GREEN)Built $(FINAL) using as+ld$(DEF_COLOR)"; \
+	elif [ "$(BACKEND)" = "nasm" ]; then \
+		./$(NAME) < $(INPUT) > $(OUT_ASM); \
+		$(MKD) $(OBJ_DIR); \
+		$(NASM) $(NASM_FLAGS) $(OUT_ASM) -o $(OUT_OBJ); \
+		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
+		echo "$(GREEN)Built $(FINAL) using nasm+ld$(DEF_COLOR)"; \
+	else \
+		echo "Unknown BACKEND='$(BACKEND)'. Use 'gas' or 'nasm'"; exit 1; \
+	fi
+	@echo ""
+
+# ------------------------------------------------------------------ #
+# Eval-friendly compile target using nasm (mirrors evaluator compile())
+# ------------------------------------------------------------------ #
+eval_compile:
+	@if [ -z "$(ARGS)" ]; then \
+		echo "Usage: make eval_compile ARGS='file1.b file2.b ...'"; exit 1; \
+	fi; \
+	set -e; \
+	# If single input, produce `final`; if multiple, produce one executable per input
+	count=0; for _f in $(ARGS); do count=$$((count+1)); done; \
+	if [ $$count -eq 1 ]; then \
+		for f in $(ARGS); do \
+			S=$$(mktemp); O=$$(mktemp); \
+			./$(NAME) < $$f > $$S; \
+			nasm -felf32 $$S -o $$O; \
+			rm -f $$S; \
+			ld -m elf_i386 $$O brt0.o -o final; \
+			echo "Linked final"; \
+		done; \
+	else \
+		for f in $(ARGS); do \
+			out="final_$$(basename $$f .b)"; \
+			S=$$(mktemp); O=$$(mktemp); \
+			./$(NAME) < $$f > $$S; \
+			nasm -felf32 $$S -o $$O; \
+			rm -f $$S; \
+			ld -m elf_i386 $$O brt0.o -o $$out; \
+			echo "Linked $$out"; \
+		done; \
+	fi; \
+
+.PHONY: all clean fclean re assemble link run test test-errors

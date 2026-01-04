@@ -11,9 +11,9 @@
 /* *************************************************************************** */
 
 /* ******************** */
-/* Lexical analyzer		*/
-/* Flex – lexer			*/
-/* ********************	*/
+/* Lexical analyzer     */
+/* Flex – lexer         */
+/* ******************** */
 
 /*
 ===============================================================================
@@ -59,11 +59,55 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 /* ========================================================================= */
 #include "parser.tab.h"
 #include "../includes/B.h"
+
+/* ================================================================== */
+/* helper: unescape a C-style quoted string (returns malloc'd string) */
+/* ================================================================== */
+static char *unescape_string(const char *s, int len)
+{
+	char *out = malloc(len + 1);
+	if (!out) return NULL;
+	int ri = 0;
+	for (int i = 0; i < len; i++)
+	{
+		char c = s[i];
+		if (c == '\\' && i + 1 < len)
+		{
+			i++;
+			char esc = s[i];
+			switch (esc) {
+				case 'n': out[ri++] = '\n'; break;
+				case 't': out[ri++] = '\t'; break;
+				case 'r': out[ri++] = '\r'; break;
+				case '\\': out[ri++] = '\\'; break;
+				case '\'': out[ri++] = '\''; break;
+				case '"': out[ri++] = '"'; break;
+				case '0': out[ri++] = '\0'; break;
+				default: out[ri++] = esc; break;
+			}
+		}
+		else
+		{
+			out[ri++] = c;
+		}
+	}
+	out[ri] = '\0';
+	return out;
+}
 %}
 
-/* ========================================================================= */
-/* Lexer rules                                                               */
-/* ========================================================================= */
+/* ============================================================================ */
+/* Lexer rules                                                                  */
+/*                                                                              */
+/* This lexer converts the input stream into tokens consumed by the Bison       */
+/* parser (B.y). It recognizes identifiers, numbers, keywords, operators and    */
+/* punctuation. Whitespace and comments are ignored. The lexer stores semantic  */
+/* values in `yylval.str` for tokens that carry text (IDENT, NUMBER).           */
+/*                                                                              */
+/* The lexer intentionally returns single characters for punctuation (e.g.      */
+/* '(' , ')' , ';') so the grammar can use them directly.                       */
+/* ============================================================================ */
+
 %%
 [ \t\r\n]+               ;   /* whitespace */
 
@@ -73,6 +117,11 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 
 "if"        { return IF; }
 "else"      { return ELSE; }
+"then"      { return THEN; }
+"function"  { return FUNCTION; }
+"endfunction" { return ENDFUNCTION; }
+"return"    { return RETURN; }
+"extrn"     { return EXTRN; }
 
 [A-Za-z_][A-Za-z0-9_]* {
 	yylval.str = strdup(yytext);
@@ -82,6 +131,36 @@ Its only job is tokenization; grammar rules and structure are handled by Bison.
 [0-9]+ { 
 	yylval.str = strdup(yytext);
 	return NUMBER;
+}
+
+\"([^\\\"\n]|\\.)*\" {
+	/* string literal with C-style escapes */
+	int L = yyleng - 2; /* drop quotes */
+	char *raw = malloc(L + 1);
+	if (!raw) raw = "";
+	if (L > 0)
+		memcpy(raw, yytext + 1, L);
+	raw[L] = '\0';
+	char *un = unescape_string(raw, L);
+	free(raw);
+	yylval.str = un;
+	return STRING;
+}
+
+\'([^\\'\n]|\\.)\' {
+	/* char literal (single character, possibly escaped) */
+	int L = yyleng - 2;
+	char buf[4] = {0};
+	if (L > 0)
+		memcpy(buf, yytext + 1, L);
+	char *un = unescape_string(buf, L);
+	/* convert to decimal string to reuse existing NUMBER handling */
+	char tmp[16];
+	unsigned char v = (unsigned char)un[0];
+	snprintf(tmp, sizeof(tmp), "%u", (unsigned)v);
+	yylval.str = strdup(tmp);
+	free(un);
+	return NUMBER; /* reuse NUMBER token carrying string numeric */
 }
 
 "+" 	 { return PLUS; }
