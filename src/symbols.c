@@ -6,7 +6,7 @@
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/28 16:19:24 by rdel-olm          #+#    #+#             */
-/*   Updated: 2026/01/04 23:36:05 by rdel-olm         ###   ########.fr       */
+/*   Updated: 2026/01/05 23:29:07 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,25 @@ const char *intern_string(const char *s)
     return symbols[count-1].name;
 }
 
+const char *intern_float(const char *s)
+{
+    /* check for existing identical float literal -> reuse label */
+    for (int i = 0; i < count; i++)
+    {
+        if (symbols[i].type == SYM_FLOAT && strcmp(symbols[i].data, s) == 0)
+            return symbols[i].name;
+    }
+    char lbl[32];
+    snprintf(lbl, sizeof(lbl), "F%d", count);
+    symbols[count].name = strdup(lbl);
+    symbols[count].type = SYM_FLOAT;
+    symbols[count].data = strdup(s);
+    symbols[count].code_label = NULL;
+    symbols[count].code_body = NULL;
+    count++;
+    return symbols[count-1].name;
+}
+
 void set_function_body(const char *name, const char *body)
 {
     int idx = find_symbol(name);
@@ -192,10 +211,27 @@ void emit_symbols(void)
     }
     for (int i = 0; i < count; i++)
     {
+        if (symbols[i].type == SYM_FLOAT)
+        {
+            /* emit float literal as dq <value> */
+            printf("%s: dq %s\n", symbols[i].name, symbols[i].data);
+        }
+    }
+    for (int i = 0; i < count; i++)
+    {
         if (symbols[i].type == SYM_VAR)
+        {
+            /* make variable label visible to linker (so external C code
+               can reference ARG0-like data labels) */
+            printf("global %s\n", symbols[i].name);
             printf("%s: dd 0\n", symbols[i].name);
+        }
         else if (symbols[i].type == SYM_FUNC)
+        {
+            /* function pointer slot should be global too */
+            printf("global %s\n", symbols[i].name);
             printf("%s: dd %s\n", symbols[i].name, symbols[i].code_label);
+        }
     }
 }
 
@@ -206,6 +242,21 @@ void emit_function_bodies(void)
         if (symbols[i].type == SYM_FUNC && symbols[i].code_body)
         {
             printf("%s\n", symbols[i].code_body);
+        }
+    }
+}
+
+void emit_externs(void)
+{
+    /* Emit NASM extern declarations for referenced labels that are not
+       declared as variables or functions with bodies. These represent
+       external symbols provided by a separate library (e.g. libb.a).
+    */
+    for (int i = 0; i < count; i++)
+    {
+        if (symbols[i].type == SYM_LABEL)
+        {
+            printf("extern %s\n", symbols[i].name);
         }
     }
 }

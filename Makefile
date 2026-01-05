@@ -121,6 +121,8 @@ FINAL ?= final
 #  - 'gas'  : use GNU as (AT&T) + ld
 # Override example: `make assemble BACKEND=gas`
 BACKEND ?= nasm
+USE_BONUS_LIB ?= 0
+BONUS_LIB := B_bonus/lib/libb.a
 
 # ═══ Rules ══════════════════════════════════════════════════════════════════ #
 #     -----                                                                    #
@@ -171,75 +173,51 @@ test: $(NAME)
 	@echo ""
 	@echo "$(YELLOW)Running tests...$(DEF_COLOR)"
 	@echo ""
-	@fail=0; \
-	for f in tests/*.b; do \
-		tname=$$(basename $$f .b); \
-		exp_file=tests/$$tname.expect; \
-		if [ ! -f $$exp_file ]; then printf "%-25s MISSING .expect\n" "$$tname"; fail=1; continue; fi; \
-		./$(NAME) < $$f > $(OUT_ASM); \
-		$(MKD) $(OBJ_DIR); \
-		$(NASM) $(NASM_FLAGS) $(OUT_ASM) -o $(OUT_OBJ); \
-		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
-		out=$$(./$(FINAL)); \
-		exp=$$(cat $$exp_file); \
-		if [ "$$out" -eq "$$exp" ]; then \
-			printf "Test %-20s : result=%-5s expected=%-5s OK $(CHECK)\\n" "$$tname" "$$out" $$exp; \
-		else \
-			printf "Test %-20s : result=%-5s expected=%-5s FAIL $(CROSS)\\n" "$$tname" "$$out" $$exp; fail=1; \
-		fi; \
-	done; \
-	if [ $$fail -ne 0 ]; then exit 1; fi
-	@echo ""
-	@echo "All tests passed."
+	@./utils/run_tests.sh $(USE_BONUS_LIB)
 	@echo ""
 	
 test-errors: $(NAME)
 	@echo ""
 	@echo "$(YELLOW)Running error tests...$(DEF_COLOR)"
-	@./tests_error/run_error_tests.sh
+	@./utils/run_error_tests.sh
 	@echo ""
 
-# ----------------------------------------------------------- #
-# Link with the subject-provided entry object `brt0.o`
-# ----------------------------------------------------------- #
-link: obj
+# --------------------------------------------------------------------------------- #
+# run bonus tests (delegates logic to script)
+# --------------------------------------------------------------------------------- #
+test-bonus: $(NAME)
 	@echo ""
-	@echo "$(YELLOW)Linking brt0.o and $(OUT_OBJ)...$(DEF_COLOR)"
-	@$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL)
-	@echo "$(GREEN)Wrote $(FINAL)$(DEF_COLOR)"
+	@echo "$(YELLOW)Running bonus tests...$(DEF_COLOR)"
+	@echo ""
+	@# run the test script located inside the tests-bonus/tests_bonus directory
+	@# choose directory name and run runner there
+	@BONUS_LIB=$(BONUS_LIB) USE_BONUS_LIB=$(USE_BONUS_LIB) ./utils/run_bonus_tests.sh
 
 # --------------------------------------------------------------------------------- #
-# Single simple `run` target: build (assemble) then execute the produced `$(FINAL)`.
+# Run bonus tests and always link the bonus library (convenience target)
 # --------------------------------------------------------------------------------- #
+test-bonus-lib: $(NAME)
+	@echo ""
+	@echo "$(YELLOW)Running bonus tests with bonus lib...$(DEF_COLOR)"
+	@echo ""
+	@# run the test script located inside the tests-bonus/tests_bonus directory
+	@# choose directory name and run runner there
+	@BONUS_LIB=$(BONUS_LIB) USE_BONUS_LIB=1 ./utils/run_bonus_tests.sh
+# --------------------------------------------------------------------------------- #
+
 run: assemble
 	@echo ""
-	@echo "$(YELLOW)Running $(FINAL)...$(DEF_COLOR)"
+	@echo "$(YELLOW)Running $(FINAL)..
+	.$(DEF_COLOR)"
 	@./$(FINAL)
 
 # --------------------------------------------------------------- #
 # Single assemble target that picks backend using BACKEND variable
 # --------------------------------------------------------------- #
+
 assemble: $(NAME)
 	@echo ""
-	@echo "$(YELLOW)Assembling (backend=$(BACKEND))...$(DEF_COLOR)"
-	@if [ ! -f "$(INPUT)" ]; then \
-		echo "$(RED)Error: input file '$(INPUT)' not found$(DEF_COLOR)"; exit 1; \
-	fi; \
-	if [ "$(BACKEND)" = "gas" ]; then \
-		./$(NAME) < $(INPUT) > $(OUT_ASM); \
-		$(MKD) $(OBJ_DIR); \
-		as --32 $(OUT_ASM) -o $(OUT_OBJ); \
-		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
-		echo "$(GREEN)Built $(FINAL) using as+ld$(DEF_COLOR)"; \
-	elif [ "$(BACKEND)" = "nasm" ]; then \
-		./$(NAME) < $(INPUT) > $(OUT_ASM); \
-		$(MKD) $(OBJ_DIR); \
-		$(NASM) $(NASM_FLAGS) $(OUT_ASM) -o $(OUT_OBJ); \
-		$(LD) $(LD_FLAGS) brt0.o $(OUT_OBJ) -o $(FINAL); \
-		echo "$(GREEN)Built $(FINAL) using nasm+ld$(DEF_COLOR)"; \
-	else \
-		echo "Unknown BACKEND='$(BACKEND)'. Use 'gas' or 'nasm'"; exit 1; \
-	fi
+	@./utils/assemble.sh $(INPUT) $(BACKEND) $(USE_BONUS_LIB)
 	@echo ""
 
 # ------------------------------------------------------------------ #
@@ -252,13 +230,26 @@ eval_compile:
 	set -e; \
 	# If single input, produce `final`; if multiple, produce one executable per input
 	count=0; for _f in $(ARGS); do count=$$((count+1)); done; \
+	# prepare optional bonus lib (opt-in)
+	if [ "$(USE_BONUS_LIB)" = "1" ]; then \
+		if [ ! -f "$(BONUS_LIB)" ]; then \
+			$(MAKE) -C B_bonus/lib; \
+		fi; \
+		BONUS_LINK="$(BONUS_LIB)"; \
+	else \
+		BONUS_LINK=""; \
+	fi; \
 	if [ $$count -eq 1 ]; then \
 		for f in $(ARGS); do \
 			S=$$(mktemp); O=$$(mktemp); \
 			./$(NAME) < $$f > $$S; \
 			nasm -felf32 $$S -o $$O; \
 			rm -f $$S; \
-			ld -m elf_i386 $$O brt0.o -o final; \
+			if [ -n "$$BONUS_LINK" ]; then \
+				ld -m elf_i386 $$O brt0.o $$BONUS_LINK -o final; \
+			else \
+				ld -m elf_i386 $$O brt0.o -o final; \
+			fi; \
 			echo "Linked final"; \
 		done; \
 	else \
@@ -268,9 +259,13 @@ eval_compile:
 			./$(NAME) < $$f > $$S; \
 			nasm -felf32 $$S -o $$O; \
 			rm -f $$S; \
-			ld -m elf_i386 $$O brt0.o -o $$out; \
+			if [ -n "$$BONUS_LINK" ]; then \
+				ld -m elf_i386 $$O brt0.o $$BONUS_LINK -o $$out; \
+			else \
+				ld -m elf_i386 $$O brt0.o -o $$out; \
+			fi; \
 			echo "Linked $$out"; \
 		done; \
 	fi; \
 
-.PHONY: all clean fclean re assemble link run test test-errors
+.PHONY: all clean fclean re assemble link run test test-errors test-bonus

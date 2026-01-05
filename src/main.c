@@ -6,7 +6,7 @@
 /*   By: rdel-olm <rdel-olm@student.42malaga.com>   +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/26 22:51:50 by rdel-olm          #+#    #+#             */
-/*   Updated: 2026/01/04 23:29:41 by rdel-olm         ###   ########.fr       */
+/*   Updated: 2026/01/05 23:18:13 by rdel-olm         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
     /* parser debug traces off by default */
 	/* ********************************** */
     extern int yydebug;
-    yydebug = 0;
+    yydebug = 0; /* parser debug off by default */
     yyparse();
 
 	/* ************************************************ */
@@ -72,6 +72,9 @@ int main(int argc, char **argv)
     printf("print_buf: times 12 db 0\n");
     printf("print_buf_end:\n");
     printf("nl: db 10\n");
+     /* Emit extern declarations for referenced external labels (e.g. libb.a)
+         so the assembler accepts deferred symbol resolution. */
+     emit_externs();
     printf("section .text\n");
     printf("prog_main:\n");
 

@@ -118,14 +118,26 @@ static char *unescape_string(const char *s, int len)
 "if"        { return IF; }
 "else"      { return ELSE; }
 "then"      { return THEN; }
+"switch"    { return SWITCH; }
+"case"      { return CASE; }
+"default"   { return DEFAULT; }
+"break"     { return BREAK; }
+"goto"      { return GOTO; }
 "function"  { return FUNCTION; }
 "endfunction" { return ENDFUNCTION; }
 "return"    { return RETURN; }
 "extrn"     { return EXTRN; }
+"int"       { return INTKW; }
 
 [A-Za-z_][A-Za-z0-9_]* {
 	yylval.str = strdup(yytext);
     return IDENT;
+}
+
+([0-9]+\.[0-9]*|\.[0-9]+|[0-9]+\.) {
+    /* float literal */
+    yylval.str = strdup(yytext);
+    return FLOAT;
 }
 
 [0-9]+ { 
@@ -165,6 +177,8 @@ static char *unescape_string(const char *s, int len)
 
 "+" 	 { return PLUS; }
 "*" 	 { return STAR; }
+"-"      { return MINUS; }
+"/"      { return DIV; }
 "="    	 { return '='; }
 ";"      { return ';'; }
 "("      { return '('; }
