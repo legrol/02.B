@@ -4,8 +4,8 @@ This directory holds a small standard library for the B bonus features.
 
 Contents / Layout
 
-- `Makefile` — builds `libb.a` (32-bit objects) using `gcc -m32` and `ar`.
-- Several helpers implemented in C or assembly. The repository includes a
+- `Makefile` — builds `libb.a` (32-bit objects) using `as --32` and `ar`.
+- Several helpers implemented in pure assembly. The repository includes a
   few example functions used by the project's bonus tests.
 
 Provided helpers
@@ -26,8 +26,8 @@ cd B_bonus/lib
 make
 ```
 
-This produces `libb.a`. The Makefile compiles objects with `-m32` and creates
-the static archive. See `Makefile` for exact compiler flags.
+This produces `libb.a`. The Makefile assembles objects with `as --32` and creates
+the static archive. See `Makefile` for exact assembler flags.
 
 Linking / Usage
 
@@ -56,11 +56,11 @@ ARG1 = 10;     # exponent
 return b_ipow();
 ```
 
-- The library is implemented to avoid depending on libc for small helpers
-  (uses direct syscalls/assembly where appropriate). If your system lacks
-  multilib support, install `gcc-multilib` or use a 32-bit toolchain.
+- The library is implemented in pure assembly to avoid depending on libc and
+  to eliminate the need for 32-bit C development libraries (`gcc-multilib`).
+  All helpers use direct syscalls where appropriate.
 
 Adding new helpers
 
-1. Add a `.c` or `.s` file implementing the helper.
+1. Add a `.s` file implementing the helper in AT&T syntax (32-bit i386).
 2. Run `make` in this directory to rebuild `libb.a` (the test runner rebuilds it automatically when needed).

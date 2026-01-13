@@ -7,9 +7,8 @@ Overview
   emits 32-bit i386 assembly.
 
 Build requirements
-- Tools: `gcc` (with multilib support), `make`, `flex`, `bison`, `nasm`, `ld`.
-  You need a 32-bit i386 toolchain (or multilib) to assemble and link test
-  programs and the optional bonus library.
+- Tools: `gcc`, `make`, `flex`, `bison`, `nasm`, `ld`.
+  You need a 32-bit i386 toolchain to assemble and link test programs.
 
 Build
 1. `make re` — clean and build the compiler `B` (this invokes `bison` and
@@ -33,7 +32,7 @@ Running and testing
 
 Bonus library
 - The repository includes an optional bonus library in `B_bonus/lib`. It
-  provides small helper routines implemented in C or assembly and built as a
+  provides small helper routines implemented in pure assembly and built as a
   32-bit static archive `libb.a`. Example functions included are:
   - `get_ten()` — returns `10` (simple demo).
   - `b_print()` — zero-argument helper that reads the string pointer from the

@@ -26,7 +26,7 @@ Notes on how tests are executed
 
 - The runner builds `B_bonus/lib/libb.a` (32-bit archive) and links it with
   each compiled test program. Make sure you have a 32-bit toolchain
-  (`gcc -m32`, `nasm`, `ld -m elf_i386`).
+  (`nasm`, `ld -m elf_i386`), and access to the `as` assembler.
 
 Calling convention for bonus helpers
 - To keep the compiler small we use a simple data-based convention for
@@ -60,8 +60,7 @@ Adding new bonus tests
 
 Troubleshooting
 - If the runner fails to link, ensure `libb.a` exists and that your system
-  supports 32-bit linking. On some systems you may need to install
-  multilib packages.
+  supports 32-bit linking and the `as --32` assembler is available.
 
 Enjoy experimenting with the bonus helpers — they are deliberately small and
 designed to be easy to extend.
