@@ -9,6 +9,11 @@ if [ $# -eq 0 ]; then
   exit 2
 fi
 
+if [ ! -f brt0.o ]; then
+  echo "brt0.o missing; building it with make..."
+  make --no-print-directory -s brt0.o
+fi
+
 # If only one input, produce `final`. If multiple, produce one executable per input
 if [ $# -eq 1 ]; then
   f="$1"

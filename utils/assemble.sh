@@ -10,6 +10,11 @@ BONUS_LIB=B_bonus/lib/libb.a
 echo
 echo "Assembling (backend=${BACKEND})..."
 
+if [ ! -f brt0.o ]; then
+  echo "brt0.o missing; building it with make..."
+  make --no-print-directory -s brt0.o
+fi
+
 if [ "$USE_BONUS_LIB" = "1" ]; then
   # Always (re)build the bonus library to ensure symbols are present
   make --no-print-directory -s -C B_bonus/lib
