@@ -130,6 +130,7 @@ static char *unescape_string(const char *s, int len)
 "int"       { return INTKW; }
 
 [A-Za-z_][A-Za-z0-9_]* {
+	/* identifiers */
 	yylval.str = strdup(yytext);
     return IDENT;
 }
@@ -140,7 +141,8 @@ static char *unescape_string(const char *s, int len)
     return FLOAT;
 }
 
-[0-9]+ { 
+[0-9]+ {
+	/* integer literal */ 
 	yylval.str = strdup(yytext);
 	return NUMBER;
 }
