@@ -29,6 +29,15 @@ Running and testing
     `stderr` messages with expectations.
   - `make test-bonus-lib` — run the bonus tests while building and linking
     the bonus static library `B_bonus/lib/libb.a` (see below).
+  - `make eval_compile ARGS='file1.b file2.b ...'` — compile, assemble, link
+    and test one or more B programs in a single command. Compares output
+    against `*.expect` files if present. For bonus library support, add
+    `USE_BONUS_LIB=1`. Examples:
+    ```sh
+    make eval_compile ARGS='tests/test_add.b'
+    make eval_compile ARGS='tests/test_add.b tests/test_mul.b'
+    make eval_compile ARGS='tests_bonus/test_b_ipow.b' USE_BONUS_LIB=1
+    ```
 
 Bonus library
 - The repository includes an optional bonus library in `B_bonus/lib`. It
