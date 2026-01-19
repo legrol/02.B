@@ -227,10 +227,7 @@ eval_compile:
 	@if [ -z "$(ARGS)" ]; then \
 		echo "Usage: make eval_compile ARGS='file1.b file2.b ...'"; exit 1; \
 	fi; \
-	set -e; \
-	# If single input, produce `final`; if multiple, produce one executable per input
 	count=0; for _f in $(ARGS); do count=$$((count+1)); done; \
-	# prepare optional bonus lib (opt-in)
 	if [ "$(USE_BONUS_LIB)" = "1" ]; then \
 		if [ ! -f "$(BONUS_LIB)" ]; then \
 			$(MAKE) -C B_bonus/lib; \
@@ -239,7 +236,8 @@ eval_compile:
 	else \
 		BONUS_LINK=""; \
 	fi; \
-	if [ $$count -eq 1 ]; then \
+	set -e; \
+	if [ "$$count" -eq 1 ]; then \
 		for f in $(ARGS); do \
 			S=$$(mktemp); O=$$(mktemp); \
 			./$(NAME) < $$f > $$S; \
@@ -250,7 +248,23 @@ eval_compile:
 			else \
 				ld -m elf_i386 $$O brt0.o -o final; \
 			fi; \
-			echo "Linked final"; \
+			rm -f $$O; \
+			echo "$(GREEN)Linked final$(DEF_COLOR)"; \
+			expect_file="$${f%.b}.expect"; \
+			if [ -f "$$expect_file" ]; then \
+				result=$$(set +e; ./final 2>&1; set -e); \
+				expected=$$(cat $$expect_file); \
+				if [ "$$expected" = "IS_NUMERIC" ]; then \
+					case "$$result" in ''|*[!0-9]*) echo "$(RED)FAIL$(DEF_COLOR) (expected numeric, got $$result)";; *) echo "$(GREEN)OK$(DEF_COLOR) ✅ (result=$$result)";; esac; \
+				elif [ "$$result" = "$$expected" ]; then \
+					echo "$(GREEN)OK$(DEF_COLOR) ✅ (result=$$result)"; \
+				else \
+					echo "$(RED)FAIL$(DEF_COLOR) (expected=$$expected, got=$$result)"; \
+				fi; \
+			else \
+				result=$$(set +e; ./final 2>&1; set -e); \
+				echo "$(YELLOW)Result:$(DEF_COLOR) $$result (no .expect file)"; \
+			fi; \
 		done; \
 	else \
 		for f in $(ARGS); do \
@@ -264,7 +278,23 @@ eval_compile:
 			else \
 				ld -m elf_i386 $$O brt0.o -o $$out; \
 			fi; \
-			echo "Linked $$out"; \
+			rm -f $$O; \
+			echo "$(GREEN)Linked $$out$(DEF_COLOR)"; \
+			expect_file="$${f%.b}.expect"; \
+			if [ -f "$$expect_file" ]; then \
+				result=$$(set +e; ./$$out 2>&1; set -e); \
+				expected=$$(cat $$expect_file); \
+				if [ "$$expected" = "IS_NUMERIC" ]; then \
+					case "$$result" in ''|*[!0-9]*) echo "$(RED)FAIL$(DEF_COLOR) (expected numeric, got $$result)";; *) echo "$(GREEN)OK$(DEF_COLOR) ✅ (result=$$result)";; esac; \
+				elif [ "$$result" = "$$expected" ]; then \
+					echo "$(GREEN)OK$(DEF_COLOR) ✅ (result=$$result)"; \
+				else \
+					echo "$(RED)FAIL$(DEF_COLOR) (expected=$$expected, got=$$result)"; \
+				fi; \
+			else \
+				result=$$(set +e; ./$$out 2>&1; set -e); \
+				echo "$(YELLOW)Result:$(DEF_COLOR) $$result (no .expect file)"; \
+			fi; \
 		done; \
 	fi; \
 
