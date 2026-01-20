@@ -130,25 +130,33 @@ static char *unescape_string(const char *s, int len)
 "int"       { return INTKW; }
 
 [A-Za-z_][A-Za-z0-9_]* {
+	/* *********** */
 	/* identifiers */
+	/* *********** */
 	yylval.str = strdup(yytext);
     return IDENT;
 }
 
 ([0-9]+\.[0-9]*|\.[0-9]+|[0-9]+\.) {
+	/* ************* */
     /* float literal */
+	/* ************* */
     yylval.str = strdup(yytext);
     return FLOAT;
 }
 
 [0-9]+ {
+	/* *************** */
 	/* integer literal */ 
+	/* *************** */
 	yylval.str = strdup(yytext);
 	return NUMBER;
 }
 
 \"([^\\\"\n]|\\.)*\" {
+	/* *********************************** */
 	/* string literal with C-style escapes */
+	/* *********************************** */
 	int L = yyleng - 2; /* drop quotes */
 	char *raw = malloc(L + 1);
 	if (!raw) raw = "";
@@ -162,13 +170,17 @@ static char *unescape_string(const char *s, int len)
 }
 
 \'([^\\'\n]|\\.)\' {
+	/* ************************************************* */
 	/* char literal (single character, possibly escaped) */
+	/* ************************************************* */
 	int L = yyleng - 2;
 	char buf[4] = {0};
 	if (L > 0)
 		memcpy(buf, yytext + 1, L);
 	char *un = unescape_string(buf, L);
+	/* *********************************************************** */
 	/* convert to decimal string to reuse existing NUMBER handling */
+	/* *********************************************************** */
 	char tmp[16];
 	unsigned char v = (unsigned char)un[0];
 	snprintf(tmp, sizeof(tmp), "%u", (unsigned)v);

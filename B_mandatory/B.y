@@ -198,14 +198,18 @@ ffactor
       }
     | NUMBER
       {
+        /* ************************************************************** */
         /* convert integer literal to float via temporary dword then fild */
+        /* ************************************************************** */
         declare_var("__flt_tmp");
         emit("\tmov dword [__flt_tmp], %s\n", $1);
         emit("\tfild dword [__flt_tmp]\n");
       }
     | IDENT
       {
+        /* **************************************************************** */
         /* if IDENT is a variable, load it as integer then convert to float */
+        /* **************************************************************** */
         if (get_symbol_type($1) == SYM_VAR)
         {
             emit("\tfild dword [%s]\n", $1);
@@ -224,30 +228,42 @@ ffactor
 case_entry
     : CASE NUMBER ':'
       {
+        /* *************************************************** */
         /* create label for this case and emit comparison jump */
+        /* *************************************************** */
         char *lbl = new_label();
         emit("\tcmp eax, %s\n", $2);
         emit("\tje %s\n", lbl);
+        /* ********************************************************** */
         /* store label temporarily in the switch holder for later use */
+        /* ********************************************************** */
         if (current_switch)
         {
           current_switch->last_temp_lbl = strdup(lbl);
         }
+        /* ************************************************** */
         /* capture the body emitted by following `statements` */
+        /* ************************************************** */
         emit_begin_capture();
         emit("%s:\n", current_switch ? current_switch->last_temp_lbl : lbl);
         free(lbl);
       }
       statements
       {
+        /* ***************************** */
         /* finish capture and store node */
+        /* ***************************** */
         char *body = emit_end_capture();
         struct case_node *n = malloc(sizeof(*n));
         if (!n) { fprintf(stderr, "out of memory\n"); exit(1); }
+        /* *************************************** */
         /* copy the temporary label stored earlier */
+        /* *************************************** */
         n->lbl = current_switch && current_switch->last_temp_lbl ? strdup(current_switch->last_temp_lbl) : strdup(".");
         if (current_switch && current_switch->last_temp_lbl) { free(current_switch->last_temp_lbl); current_switch->last_temp_lbl = NULL; }
+        /* **************************************************************** */
         /* The captured body contains the label at the start; keep it as-is */
+        /* **************************************************************** */
         n->body = body;
         n->value = strdup($2);
         n->next = NULL;
@@ -256,7 +272,9 @@ case_entry
       }
     | DEFAULT ':'
       {
+        /* ******************** */
         /* capture default body */
+        /* ******************** */
         char *lbl = new_label();
         current_switch->default_lbl = strdup(lbl);
         emit_begin_capture();
@@ -301,13 +319,17 @@ statement
     }
   | GOTO IDENT ';'
     {
+      /* ************************************ */
       /* jump to label (declare if necessary) */
+      /* ************************************ */
       declare_label($2);
       emit("\tjmp %s\n", $2);
     }
   | BREAK ';'
     {
+      /* ********************************************************** */
       /* break: jump to the nearest enclosing switch/loop end label */
+      /* ********************************************************** */
       char *l_end = peek_label();
       if (!l_end)
       {
@@ -318,7 +340,9 @@ statement
     }
   | SWITCH '(' expression ')' '{' 
       {
+        /* ************************************************ */
         /* start a new switch holder and push its end label */
+        /* ************************************************ */
         current_switch = malloc(sizeof(*current_switch));
         if (!current_switch) { fprintf(stderr, "out of memory\n"); exit(1); }
         current_switch->head = current_switch->tail = NULL;
@@ -329,7 +353,9 @@ statement
       }
       case_list '}'
       {
+        /* ********************************************************* */
         /* after parsing cases: emit fallback jump to default or end */
+        /* ********************************************************* */
         if (current_switch->default_lbl)
         {
           emit("\tjmp %s\n", current_switch->default_lbl);
@@ -338,7 +364,9 @@ statement
         {
           emit("\tjmp %s\n", current_switch->end_lbl);
         }
+        /* ********************************* */
         /* emit the captured bodies in order */
+        /* ********************************* */
         struct case_node *it = current_switch->head;
         while (it)
         {
@@ -350,14 +378,18 @@ statement
           free(tmp->value);
           free(tmp);
         }
+        /* ************ */
         /* default body */
+        /* ************ */
         if (current_switch->default_body)
         {
           emit("%s", current_switch->default_body);
           free(current_switch->default_body);
           free(current_switch->default_lbl);
         }
+        /* *************************** */
         /* emit end label and clean up */
+        /* *************************** */
         emit("%s:\n", current_switch->end_lbl);
         pop_label();
         free(current_switch->end_lbl);
@@ -425,7 +457,9 @@ expression
       } term
       {
         emit("\tpop ebx\n");
+        /* ***************************************************************** */
         /* compute (left - right): left was pushed into ebx, right is in eax */
+        /* ***************************************************************** */
         emit("\tsub ebx, eax\n");
         emit("\tmov eax, ebx\n");
       }
@@ -447,7 +481,9 @@ term
       } factor
       {
         emit("\tpop ebx\n");
+        /* ******************************************************** */
         /* perform signed division: ebx (left) / eax (right) -> eax */
+        /* ******************************************************** */
         emit("\tmov ecx, eax\n");
         emit("\tmov eax, ebx\n");
         emit("\tcdq\n");
@@ -471,7 +507,9 @@ factor
       }
     | IDENT '(' ')' 
       {
+        /* ************************************** */
         /* zero-argument call (existing behavior) */
+        /* ************************************** */
         if (get_symbol_type($1) == SYM_VAR || get_symbol_type($1) == SYM_FUNC)
         {
           emit("\tmov eax, dword [%s]\n", $1);
@@ -575,11 +613,15 @@ factor
       }
     | '(' INTKW ')' fexpr
       {
+        /* ************************************************************************** */
         /* cast float -> int: pop float into integer memory via FPU and load into eax */
+        /* ************************************************************************** */
         declare_var("__flt_tmp");
+        /* *********************************************************** */
         /* set FPU rounding mode to truncate (round toward zero) by
           saving control word, modifying RC bits, loading modified CW,
-          performing fistp, then restoring old CW */
+          performing fistp, then restoring old CW                      */
+        /* *********************************************************** */
         emit("\tsub esp, 4\n");
         emit("\tfnstcw word [esp]\n");
         emit("\tmov ax, word [esp]\n");
