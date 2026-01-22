@@ -1,0 +1,10 @@
+make fclean && make re && make assemble
+make test
+make test-errors
+make test-bonus 
+make test-bonus-lib
+make eval_compile ARGS='tests/test_*.b' 2>&1 
+
+valgrind make eval_compile ARGS='tests/test_*.b' 2>&1 
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes make eval_compile ARGS='tests/test_add.b' 2>&1
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes make eval_compile ARGS='tests/test_*.b' 2>&1 
