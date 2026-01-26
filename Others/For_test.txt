@@ -8,3 +8,17 @@ make eval_compile ARGS='tests/test_*.b' 2>&1
 valgrind make eval_compile ARGS='tests/test_*.b' 2>&1 
 valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes make eval_compile ARGS='tests/test_add.b' 2>&1
 valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes make eval_compile ARGS='tests/test_*.b' 2>&1 
+
+
+./B < tests/test_add.b > out.asm
+nasm -felf32 out.asm -o out.o
+ld -m elf_i386 out.o brt0.o -o final
+./final
+
+./compile_nasm.sh tests/test_add.b
+./final
+
+./B < tests/test_add.b
+
+NO_PRINT=1 ./B < tests/test_add.b
+NO_PRINT=1 ./B < tests/test_if_true.b

@@ -159,7 +159,7 @@ fclean: clean
 	@echo "$(YELLOW)Removing binaries ...$(DEF_COLOR)"
 	@$(RM) ${NAME}
 	@$(RM) test *.out others/*.out
-	@$(RM) final final2 out out.asm out.s $(OUT_OBJ)
+	@$(RM) final final2 out out.asm out.s out.o $(OUT_OBJ)
 	@$(RM) final_test_* || true
 	@$(RM) tests_error/*.out || true
 	@echo "$(RED)Binaries removed $(DEF_COLOR)"
