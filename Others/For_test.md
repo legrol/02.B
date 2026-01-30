@@ -10,6 +10,8 @@ Limpia todo y recompila el compilador desde cero.
 make fclean && make re && make assemble
 ```
 
+# --------------------------------------------------------------------------------------------
+
 ---
 
 ## 2️⃣ Ejecutar Baterías de Tests Automáticas
@@ -49,6 +51,8 @@ Compila todos los tests de forma masiva (wildcard). `stderr` y `stdout` redirigi
 make eval_compile ARGS='tests/test_*.b' 2>&1
 ```
 
+# --------------------------------------------------------------------------------------------
+
 ---
 
 ## 3️⃣ Detección de Memory Leaks con Valgrind
@@ -76,6 +80,8 @@ valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes \
   make eval_compile ARGS='tests/test_*.b' 2>&1
 ```
 
+# --------------------------------------------------------------------------------------------
+
 ---
 
 ## 4️⃣ Compilación Manual Paso a Paso
@@ -96,6 +102,7 @@ ld -m elf_i386 out.o brt0.o -o final
 ./final
 ```
 
+
 ---
 
 ## 5️⃣ Compilación Automática con Script
@@ -108,6 +115,44 @@ El script `compile_nasm.sh` hace los 3 pasos automáticamente.
 ./compile_nasm.sh tests/test_add.b
 ./final
 ```
+
+# --------------------------------------------------------------------------------------------
+
+---
+
+## 5️⃣ bis Personalización de `make assemble`
+
+Puedes sobrescribir variables del Makefile para controlar el flujo:
+
+### Compilar con input diferente
+```bash
+make assemble INPUT=tests/test_mul.b    # Compila multiplicación en vez de suma
+```
+
+### Cambiar backend (GAS en vez de NASM)
+⚠️ **Nota:** El compilador B solo genera sintaxis NASM (Intel). GAS (AT&T) no es compatible, solo usa NASM:
+
+```bash
+make assemble INPUT=tests/test_add.b BACKEND=nasm    # ✅ Correcto (por defecto)
+# GAS no funcionará porque requeriría traducir la sintaxis Intel → AT&T
+```
+
+### Compilar con librería bonus
+```bash
+make assemble USE_BONUS_LIB=1    # Enlaza con B_bonus/lib/libb.a
+```
+
+### Personalización completa
+```bash
+make assemble INPUT=tests/test_vars.b BACKEND=nasm USE_BONUS_LIB=0
+```
+
+### Con tests bonus (floats, switch, etc.)
+```bash
+make assemble INPUT=tests_bonus/test_float_add.b BACKEND=nasm USE_BONUS_LIB=1
+```
+
+# --------------------------------------------------------------------------------------------
 
 ---
 
@@ -131,6 +176,8 @@ La variable `NO_PRINT=1` omite la función `print_eax` del output. Útil para ve
 NO_PRINT=1 ./B < tests/test_add.b
 NO_PRINT=1 ./B < tests/test_if_true.b
 ```
+
+# --------------------------------------------------------------------------------------------
 
 ---
 
@@ -157,6 +204,8 @@ echo "a = 2 + 2;" | ./B
 cat tests/*.b | ./B
 ```
 
+# --------------------------------------------------------------------------------------------
+
 ---
 
 ## 📋 Resumen Rápido
@@ -168,3 +217,6 @@ cat tests/*.b | ./B
 | **Ejecutar todos los tests** | `make test` |
 | **Detectar memory leaks** | `valgrind make eval_compile ARGS='tests/test_add.b' 2>&1` |
 | **Paso a paso completo** | `./B < file.b > out.asm && nasm -felf32 out.asm -o out.o && ld -m elf_i386 out.o brt0.o -o final && ./final` |
+| **Cambiar input** | `make assemble INPUT=tests/test_mul.b` |
+| **Solo NASM (GAS no compatible)** | `make assemble BACKEND=nasm` |
+| **Con librería bonus** | `make test-bonus USE_BONUS_LIB=1` |

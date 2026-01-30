@@ -8,6 +8,7 @@ echo
 echo "Running tests..."
 
 fail=0
+failed_tests=""
 
 if [ "$USE_BONUS_LIB" = "1" ]; then
   if [ ! -f "$BONUS_LIB" ]; then
@@ -26,6 +27,7 @@ for f in tests/*.b; do
   if [ ! -f "$exp_file" ]; then
     printf "%-25s MISSING .expect\n" "$tname"
     fail=1
+    failed_tests="$failed_tests $tname"
     continue
   fi
 
@@ -46,12 +48,14 @@ for f in tests/*.b; do
   else
     printf "Test %-20s : result=%-5s expected=%-5s FAIL ❌\n" "$tname" "$out" "$exp"
     fail=1
+    failed_tests="$failed_tests $tname"
   fi
 done
 
-if [ "$fail" != "0" ]; then
-  exit 1
-fi
-
 echo
-echo "All tests passed."
+if [ "$fail" != "0" ]; then
+  echo "❌ TESTS FAILED: $failed_tests"
+  exit 1
+else
+  echo "✅ All tests passed."
+fi

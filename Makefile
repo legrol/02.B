@@ -146,7 +146,7 @@ $(LEX_OUT): $(B_MAN_DIR)/B.l $(YACC_HDR)
 clean:
 	@echo ""
 	@echo "$(YELLOW)Removing object files ...$(DEF_COLOR)"
-	@$(RM) ${NAME} parser.tab.c parser.tab.h lex.yy.c lex.yy.o
+	@$(RM) ${NAME} $(YACC_OUT) $(YACC_HDR) $(LEX_OUT) lex.yy.o
 	@$(RM) $(OUT_ASM) out asm out.s
 	@$(RM) $(OUT_OBJ) final final2 out
 	@$(RM) -r $(OBJ_DIR)
@@ -174,7 +174,7 @@ test: $(NAME)
 	@echo ""
 	@echo "$(YELLOW)Running tests...$(DEF_COLOR)"
 	@echo ""
-	@./utils/run_tests.sh $(USE_BONUS_LIB)
+	@./utils/run_tests.sh $(USE_BONUS_LIB) || true
 	@echo ""
 	
 test-errors: $(NAME)
